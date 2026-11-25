@@ -1,0 +1,59 @@
+============================================================================
+SISTEMA DE GESTIÓN DE OPERACIONES DE DOMICILIOS (CALI) - GUÍA DE EJECUCIÓN
+Proyecto Integrador — Bases de Datos 1 | Universidad Autónoma de Occidente
+============================================================================
+
+Esta carpeta contiene TODO lo necesario para ejecutar y probar el proyecto
+directamente en su computador, sin depender de repositorios externos.
+
+REQUISITOS PREVIOS
+------------------
+1. Java 17 o superior (JDK 17+).
+2. MySQL Server 8.0 en ejecución (puede administrarlo con MySQL Workbench).
+
+PASO A PASO (3 PASOS)
+---------------------
+1. CARGAR LA BASE DE DATOS EN MYSQL:
+   - Opción A (MySQL Workbench): Abra el archivo
+       sql\01_BD_SistemaDomicilios_Final.sql
+     y ejecútelo completo (Ctrl + Shift + Enter).
+   - Opción B (Automática): El archivo ejecutar.bat le preguntará si desea
+     cargar el script SQL automáticamente usando su usuario/clave de MySQL.
+
+   *(Opcional)* Para probar las consultas de la Entrega 2 y los casos de
+   prueba negativos directamente en SQL, ejecute:
+       sql\02_Consultas_y_Pruebas_Integridad.sql
+
+2. INICIAR EL SISTEMA (BACKEND SPRING BOOT + INTERFAZ WEB):
+   - En Windows: Haga doble clic en  ejecutar.bat
+   - En Mac/Linux: Ejecute  chmod +x ejecutar.sh && ./ejecutar.sh
+
+   Ingrese su usuario de MySQL (Enter = root) y su contraseña (Enter = root,
+   o escriba VACIO si su MySQL local no tiene contraseña).
+   El lanzador ejecutará el paquete precompilado app\sistema-domicilios-1.0.0.jar
+   en pocos segundos y abrirá automáticamente su navegador.
+
+3. USAR LA APLICACIÓN Y PROBAR CON POSTMAN:
+   - Interfaz web: http://localhost:8080
+   - Colección de Postman: Importe en Postman el archivo
+       postman\Sistema_Domicilios_Cali.postman_collection.json
+
+ALTERNATIVAS DE EJECUCIÓN
+-------------------------
+- Desde código fuente con Maven Wrapper (sin instalar Maven):
+    Windows:  .\mvnw.cmd spring-boot:run
+    Mac/Linux: ./mvnw spring-boot:run
+
+- Con Docker Desktop (1 solo comando, incluye MySQL 8 + Java):
+    docker compose up --build
+
+CONTENIDO DE ESTA CARPETA
+-------------------------
+- app\sistema-domicilios-1.0.0.jar        -> Aplicación Spring Boot lista para ejecutar
+- ejecutar.bat / ejecutar.sh              -> Lanzadores de inicio rápido
+- sql\01_BD_SistemaDomicilios_Final.sql   -> DDL, funciones, vistas, triggers, SPs y datos
+- sql\02_Consultas_y_Pruebas_Integridad.sql -> Consultas SQL y casos negativos CP-01..CP-08
+- postman\Sistema_Domicilios_Cali.postman_collection.json -> Pruebas REST para Postman
+- src\ , pom.xml , mvnw*                  -> Código fuente completo en Spring Boot (Java 17)
+- wiki\                                   -> Documentación técnica en Markdown
+- Documento_Final_Proyecto_Integrador_SGBD_UAO.docx -> Informe final del proyecto
