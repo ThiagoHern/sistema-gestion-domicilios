@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión de Domicilios - Cali</title>
+  <style>
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #dce1e8;
+      --text: #1f2937; --muted: #6b7280; --primary: #1d4ed8;
+      --primary-hover: #1e40af;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    header { background: #0f172a; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    header h1 { margin: 0; font-size: 1.2rem; }
+    header span { font-size: 0.85rem; color: #cbd5e1; }
+    nav { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 6px; overflow-x: auto; }
+    nav button { background: none; border: none; border-bottom: 3px solid transparent; padding: 12px 16px; cursor: pointer; font-weight: 600; color: var(--muted); }
+    nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+    main { max-width: 1250px; margin: 20px auto; padding: 0 16px 40px; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 18px; }
+    h2 { margin: 0 0 14px; font-size: 1.05rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #374151; }
+    input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background: #fff; }
+    .btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.88rem; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-sm { padding: 5px 9px; font-size: 0.78rem; }
+    .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: #dc2626; }
+    .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: none; font-weight: 500; }
+    .alert.ok { display: block; background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .alert.err { display: block; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    th { background: #f8fafc; font-weight: 700; color: #334155; }
+    .table-wrap { overflow-x: auto; }
+    .badge { padding: 3px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+    .b-creada { background: #e0f2fe; color: #0369a1; }
+    .b-asignada { background: #fef3c7; color: #92400e; }
+    .b-en-curso { background: #ede9fe; color: #5b21b6; }
+    .b-finalizada { background: #dcfce7; color: #166534; }
+    .b-cancelada { background: #fee2e2; color: #991b1b; }
+    .b-activo { background: #dcfce7; color: #166534; }
+    .b-inactivo { background: #e5e7eb; color: #374151; }
+    .inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Sistema de Gestión de Operaciones de Domicilios — Cali</h1>
+  <span>Spring Boot + MySQL 8 | Bases de Datos 1 - UAO</span>
+</header>
+
+<nav>
+  <button class="active" onclick="openTab('tab-solicitudes', this)">Solicitudes (SP + Funciones)</button>
+  <button onclick="openTab('tab-incidentes', this)">Incidentes y Auditoría (Triggers)</button>
+  <button onclick="openTab('tab-entidades', this)">Clientes, Domiciliarios y Aliados</button>
+  <button onclick="openTab('tab-vistas', this)">Vistas Analíticas (VIEWS)</button>
+</nav>
+
+<main>
+  <div id="alert" class="alert"></div>
+
+  <section id="tab-solicitudes" class="tab active">
+    <div class="card">
+      <h2>Nueva Solicitud de Domicilio (invoca <code>sp_registrar_solicitud</code>)</h2>
+      <form id="form-solicitud" onsubmit="crearSolicitud(event)">
+        <div class="grid">
+          <div>
+            <label>Cliente</label>
+            <select id="sol-cliente" required onchange="filtrarDireccionesCliente()"></select>
+          </div>
+          <div>
+            <label>Dirección de Entrega (del cliente)</label>
+            <select id="sol-direccion" required></select>
+          </div>
+          <div>
+            <label>Descripción de lo que se recoge</label>
+            <input id="sol-desc" required placeholder="Ej: Pedido #4582 / Paquete">
+          </div>
+          <div>
+            <label>Método de Pago</label>
+            <select id="sol-pago">
+              <option value="efectivo">efectivo</option>
+              <option value="electrónico">electrónico</option>
+              <option value="ninguno">ninguno</option>
+            </select>
+          </div>
+          <div>
+            <label>Monto Total (COP)</label>
+            <input id="sol-monto" type="number" step="0.01" min="0" value="35000" required>
+          </div>
+          <div>
+            <label>Tipo de Punto de Recogida (RN-03 Exclusivo)</label>
+            <select id="sol-tipo-origen" onchange="toggleOrigen()">
+              <option value="aliado">Establecimiento Aliado</option>
+              <option value="externo">Dirección Externa</option>
+            </select>
+          </div>
+          <div id="box-aliado">
+            <label>Establecimiento Aliado</label>
+            <select id="sol-aliado"></select>
+          </div>
+          <div id="box-ext-dir" style="display:none">
+            <label>Ubicación Recogida Externa</label>
+            <input id="sol-ext-ubi" placeholder="Ej: Calle 14 # 32-10">
+          </div>
+          <div id="box-ext-barrio" style="display:none">
+            <label>Barrio Recogida Externa</label>
+            <select id="sol-ext-barrio"></select>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn" type="submit">Registrar Solicitud</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="inline" style="justify-content:space-between; margin-bottom:10px">
+        <h2 style="margin:0">Solicitudes Registradas (incluye tarifa por función SQL)</h2>
+        <button class="btn btn-outline btn-sm" onclick="cargarTodo()">Actualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Estado</th><th>Cliente</th><th>Origen</th><th>Destino (Barrio/Comuna)</th>
+              <th>Monto / Tarifa</th><th>Domiciliario</th><th>Inc.</th><th>Acciones (SP)</th>
+            </tr>
+          </thead>
+          <tbody id="tb-solicitudes"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-incidentes" class="tab">
+    <div class="card">
+      <h2>Registrar Incidente (dispara <code>trg_validar_incidente_fecha</code> y <code>trg_auditar_incidente</code>)</h2>
+      <form onsubmit="crearIncidente(event)">
+        <div class="grid">
+          <div>
+            <label>Solicitud</label>
+            <select id="inc-sol" required></select>
+          </div>
+          <div>
+            <label>Tipo de Incidente</label>
+            <select id="inc-tipo">
+              <option value="retraso">retraso</option>
+              <option value="dirección incorrecta">dirección incorrecta</option>
+              <option value="cliente no responde">cliente no responde</option>
+              <option value="establecimiento no entrega">establecimiento no entrega</option>
+            </select>
+          </div>
+          <div>
+            <label>Fecha/Hora (vacío = NOW())</label>
+            <input id="inc-fecha" type="datetime-local">
+          </div>
+          <div>
+            <label>Descripción</label>
+            <input id="inc-desc" required placeholder="Detalle del incidente">
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn" type="submit">Reportar Incidente</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Incidentes Registrados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Solicitud</th><th>Tipo</th><th>Descripción</th><th>Fecha/Hora</th></tr></thead>
+          <tbody id="tb-incidentes"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Bitácora Automática — <code>AuditoriaSistema</code> (poblada por Triggers)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Tabla</th><th>Acción</th><th>Reg. ID</th><th>Detalle</th><th>Fecha/Hora</th></tr></thead>
+          <tbody id="tb-auditoria"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-entidades" class="tab">
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr))">
+      <div class="card">
+        <h2>Nuevo Cliente (+ Dirección inicial)</h2>
+        <form onsubmit="crearCliente(event)" class="grid">
+          <div><label>Identificación</label><input id="cli-id" required></div>
+          <div><label>Nombres</label><input id="cli-nom" required></div>
+          <div><label>Apellido Paterno</label><input id="cli-ap1" required></div>
+          <div><label>Apellido Materno</label><input id="cli-ap2"></div>
+          <div><label>Teléfono</label><input id="cli-tel" required></div>
+          <div><label>Correo</label><input id="cli-mail" type="email" required></div>
+          <div><label>Ubicación Entrega</label><input id="cli-ubi" required placeholder="Calle / Carrera"></div>
+          <div><label>Barrio</label><select id="cli-barrio" required></select></div>
+          <div style="grid-column:1/-1"><button class="btn" type="submit">Guardar Cliente</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Nuevo Domiciliario</h2>
+        <form onsubmit="crearDomiciliario(event)" class="grid">
+          <div><label>Identificación</label><input id="dom-id" required></div>
+          <div><label>Nombres</label><input id="dom-nom" required></div>
+          <div><label>Apellido Paterno</label><input id="dom-ap1" required></div>
+          <div><label>Teléfono</label><input id="dom-tel" required></div>
+          <div><label>Correo</label><input id="dom-mail" type="email" required></div>
+          <div>
+            <label>Transporte</label>
+            <select id="dom-trans">
+              <option value="motocicleta">motocicleta</option>
+              <option value="bicicleta">bicicleta</option>
+              <option value="automóvil">automóvil</option>
+            </select>
+          </div>
+          <div>
+            <label>Estado</label>
+            <select id="dom-est">
+              <option value="activo">activo</option>
+              <option value="inactivo">inactivo</option>
+            </select>
+          </div>
+          <div style="grid-column:1/-1"><button class="btn" type="submit">Guardar Domiciliario</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Domiciliarios (cambia estado para probar rechazo de asignación)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Nombre</th><th>Transporte</th><th>Estado</th><th>Acción</th></tr></thead>
+          <tbody id="tb-domiciliarios"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Nuevo Establecimiento Aliado</h2>
+      <form onsubmit="crearEstablecimiento(event)" class="grid">
+        <div><label>Nombre Comercial</label><input id="est-nom" required></div>
+        <div>
+          <label>Tipo</label>
+          <select id="est-tipo">
+            <option value="restaurante">restaurante</option>
+            <option value="farmacia">farmacia</option>
+            <option value="supermercado">supermercado</option>
+            <option value="tienda especializada">tienda especializada</option>
+          </select>
+        </div>
+        <div><label>Ubicación</label><input id="est-ubi" required></div>
+        <div><label>Barrio</label><select id="est-barrio" required></select></div>
+        <div><label>Teléfono</label><input id="est-tel" required></div>
+        <div><label>Correo (opcional)</label><input id="est-mail" type="email"></div>
+        <div style="grid-column:1/-1"><button class="btn" type="submit">Guardar Establecimiento</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="tab-vistas" class="tab">
+    <div class="card">
+      <h2>Vista 1: <code>vw_solicitudes_activas_cali</code></h2>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Estado</th><th>Cliente</th><th>Origen</th><th>Destino</th><th>Comuna</th><th>Domiciliario</th><th>Monto</th></tr></thead><tbody id="tb-v-activas"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>Vista 2: <code>vw_resumen_domiciliarios</code></h2>
+      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Transporte</th><th>Estado</th><th>Asignadas</th><th>Finalizadas</th><th>Monto Finalizado</th><th>Incidentes</th></tr></thead><tbody id="tb-v-doms"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>Vista 3: <code>vw_resumen_establecimientos</code></h2>
+      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Establecimiento</th><th>Tipo</th><th>Barrio / Comuna</th><th>Solicitudes</th><th>Facturado</th></tr></thead><tbody id="tb-v-ests"></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  let state = { barrios: [], clientes: [], direcciones: [], domiciliarios: [], establecimientos: [], solicitudes: [] };
+
+  const esc = v => (v == null ? '' : String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+  const badgeClass = s => 'b-' + String(s || '').toLowerCase().replace(/\s+/g, '-');
+  const money = v => '$' + Number(v || 0).toLocaleString('es-CO');
+
+  function showAlert(msg, ok = true) {
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = 'alert ' + (ok ? 'ok' : 'err');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function openTab(id, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  async function api(url, opts = {}) {
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.mensaje || 'Error en la operación');
+    return data;
+  }
+
+  function toggleOrigen() {
+    const ext = document.getElementById('sol-tipo-origen').value === 'externo';
+    document.getElementById('box-aliado').style.display = ext ? 'none' : 'block';
+    document.getElementById('box-ext-dir').style.display = ext ? 'block' : 'none';
+    document.getElementById('box-ext-barrio').style.display = ext ? 'block' : 'none';
+  }
+
+  function filtrarDireccionesCliente() {
+    const cli = document.getElementById('sol-cliente').value;
+    const dirs = state.direcciones.filter(d => d.numeroIdentificacionCliente === cli);
+    document.getElementById('sol-direccion').innerHTML = dirs.map(d =>
+      `<option value="${d.idDireccion}">${esc(d.ubicacion)} (${esc(d.nombreBarrio)} - C${esc(d.comuna)})</option>`
+    ).join('') || '<option value="">Sin direcciones</option>';
+  }
+
+  async function cargarTodo() {
+    try {
+      const [cat, sols, incs, aud, vistas] = await Promise.all([
+        api('/api/catalogos'), api('/api/solicitudes'), api('/api/incidentes'),
+        api('/api/auditoria'), api('/api/vistas')
+      ]);
+      state = { ...cat, solicitudes: sols };
+
+      const optBarrios = cat.barrios.map(b => `<option value="${b.idBarrio}">${esc(b.nombreBarrio)} (Comuna ${esc(b.comuna)})</option>`).join('');
+      ['sol-ext-barrio', 'cli-barrio', 'est-barrio'].forEach(id => document.getElementById(id).innerHTML = optBarrios);
+
+      document.getElementById('sol-cliente').innerHTML = cat.clientes.map(c =>
+        `<option value="${esc(c.numeroIdentificacion)}">${esc(c.nombres)} ${esc(c.apellidoPaterno)} (${esc(c.numeroIdentificacion)})</option>`
+      ).join('');
+      filtrarDireccionesCliente();
+
+      document.getElementById('sol-aliado').innerHTML = cat.establecimientos.map(e =>
+        `<option value="${e.codigoEstablecimiento}">${esc(e.nombreComercial)} (${esc(e.tipoEstablecimiento)})</option>`
+      ).join('');
+
+      document.getElementById('inc-sol').innerHTML = sols.map(s =>
+        `<option value="${s.numeroSolicitud}">#${s.numeroSolicitud} - ${esc(s.clienteNombre)} (${esc(s.estado)})</option>`
+      ).join('');
+
+      const domOpts = cat.domiciliarios.map(d =>
+        `<option value="${d.codigoDomiciliario}">#${d.codigoDomiciliario} ${esc(d.nombreCompleto)} [${esc(d.estado)}]</option>`
+      ).join('');
+
+      document.getElementById('tb-solicitudes').innerHTML = sols.map(s => `
+        <tr>
+          <td><strong>#${s.numeroSolicitud}</strong></td>
+          <td><span class="badge ${badgeClass(s.estado)}">${esc(s.estado)}</span></td>
+          <td>${esc(s.clienteNombre)}</td>
+          <td><small>${esc(s.tipoOrigen)}:</small><br>${esc(s.puntoRecogida)}</td>
+          <td>${esc(s.direccionEntrega)}<br><small>${esc(s.nombreBarrio)} (C${esc(s.comuna)})</small></td>
+          <td>${money(s.montoTotal)}<br><small>Tarifa: ${money(s.tarifaDomicilio)}</small></td>
+          <td>${s.domiciliarioNombre ? '#' + s.codigoDomiciliario + ' ' + esc(s.domiciliarioNombre) : '<em>Sin asignar</em>'}</td>
+          <td>${s.totalIncidentes}</td>
+          <td>
+            ${s.estado === 'creada' ? `
+              <div class="inline">
+                <select id="asig-${s.numeroSolicitud}" style="width:140px;padding:4px">${domOpts}</select>
+                <button class="btn btn-sm" onclick="asignar(${s.numeroSolicitud})">Asignar</button>
+                <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
+              </div>` : ''}
+            ${s.estado === 'asignada' ? `
+              <div class="inline">
+                <button class="btn btn-sm" onclick="cambiarEstado(${s.numeroSolicitud}, 'en curso')">Iniciar</button>
+                <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
+              </div>` : ''}
+            ${s.estado === 'en curso' ? `
+              <div class="inline">
+                <button class="btn btn-sm" onclick="cambiarEstado(${s.numeroSolicitud}, 'finalizada')">Finalizar</button>
+                <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
+              </div>` : ''}
+          </td>
+        </tr>`).join('');
+
+      document.getElementById('tb-incidentes').innerHTML = incs.map(i => `
+        <tr><td>#${i.codigoIncidente}</td><td>#${i.numeroSolicitud}</td><td>${esc(i.tipoIncidente)}</td><td>${esc(i.descripcion)}</td><td>${esc(i.fechaHoraIncidente)}</td></tr>
+      `).join('');
+
+      document.getElementById('tb-auditoria').innerHTML = aud.map(a => `
+        <tr><td>${a.idAuditoria}</td><td><code>${esc(a.tablaAfectada)}</code></td><td>${esc(a.accion)}</td><td>#${a.registroId}</td><td>${esc(a.detalle)}</td><td>${esc(a.fechaHoraRegistro)}</td></tr>
+      `).join('');
+
+      document.getElementById('tb-domiciliarios').innerHTML = cat.domiciliarios.map(d => {
+        const nuevo = d.estado === 'activo' ? 'inactivo' : 'activo';
+        return `<tr>
+          <td>#${d.codigoDomiciliario}</td><td>${esc(d.nombreCompleto)}</td><td>${esc(d.medioTransporte)}</td>
+          <td><span class="badge ${badgeClass(d.estado)}">${esc(d.estado)}</span></td>
+          <td><button class="btn btn-sm btn-outline" onclick="toggleDom(${d.codigoDomiciliario}, '${nuevo}')">Cambiar a ${nuevo}</button></td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('tb-v-activas').innerHTML = vistas.activas.map(v => `
+        <tr><td>#${v.numeroSolicitud}</td><td><span class="badge ${badgeClass(v.estado)}">${esc(v.estado)}</span></td><td>${esc(v.clienteNombre)}</td><td>${esc(v.puntoRecogida)}</td><td>${esc(v.direccionDestino)}</td><td>C${esc(v.comunaDestino)}</td><td>${esc(v.domiciliarioNombre || 'Sin asignar')}</td><td>${money(v.montoTotal)}</td></tr>
+      `).join('');
+      document.getElementById('tb-v-doms').innerHTML = vistas.domiciliarios.map(v => `
+        <tr><td>#${v.codigoDomiciliario}</td><td>${esc(v.nombreDomiciliario)}</td><td>${esc(v.medioTransporte)}</td><td>${esc(v.estado)}</td><td>${v.totalSolicitudesAsignadas}</td><td>${v.solicitudesFinalizadas}</td><td>${money(v.montoFinalizado)}</td><td>${v.totalIncidentes}</td></tr>
+      `).join('');
+      document.getElementById('tb-v-ests').innerHTML = vistas.establecimientos.map(v => `
+        <tr><td>#${v.codigoEstablecimiento}</td><td>${esc(v.nombreComercial)}</td><td>${esc(v.tipoEstablecimiento)}</td><td>${esc(v.nombreBarrio)} (C${esc(v.comuna)})</td><td>${v.totalSolicitudes}</td><td>${money(v.montoFacturado)}</td></tr>
+      `).join('');
+
+    } catch (e) { showAlert(e.message, false); }
+  }
+
+  async function crearSolicitud(e) {
+    e.preventDefault();
+    const ext = document.getElementById('sol-tipo-origen').value === 'externo';
+    try {
+      const res = await api('/api/solicitudes', {
+        method: 'POST',
+        body: JSON.stringify({
+          numeroIdentificacionCliente: document.getElementById('sol-cliente').value,
+          idDireccion: document.getElementById('sol-direccion').value,
+          descripcionRecogida: document.getElementById('sol-desc').value,
+          metodoPago: document.getElementById('sol-pago').value,
+          montoTotal: document.getElementById('sol-monto').value,
+          codigoEstablecimiento: ext ? null : document.getElementById('sol-aliado').value,
+          ubicacionRecogidaExterna: ext ? document.getElementById('sol-ext-ubi').value : null,
+          idBarrioRecogidaExterna: ext ? document.getElementById('sol-ext-barrio').value : null
+        })
+      });
+      showAlert(res.mensaje, true);
+      e.target.reset(); toggleOrigen(); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function asignar(id) {
+    const cod = document.getElementById('asig-' + id).value;
+    try {
+      const res = await api(`/api/solicitudes/${id}/asignar`, { method: 'PUT', body: JSON.stringify({ codigoDomiciliario: cod }) });
+      showAlert(res.mensaje, true); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function cambiarEstado(id, estado) {
+    try {
+      const res = await api(`/api/solicitudes/${id}/estado`, { method: 'PUT', body: JSON.stringify({ estado }) });
+      showAlert(res.mensaje, true); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function crearIncidente(e) {
+    e.preventDefault();
+    try {
+      const res = await api('/api/incidentes', {
+        method: 'POST',
+        body: JSON.stringify({
+          numeroSolicitud: document.getElementById('inc-sol').value,
+          tipoIncidente: document.getElementById('inc-tipo').value,
+          fechaHoraIncidente: document.getElementById('inc-fecha').value,
+          descripcion: document.getElementById('inc-desc').value
+        })
+      });
+      showAlert(res.mensaje, true); e.target.reset(); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function crearCliente(e) {
+    e.preventDefault();
+    try {
+      const res = await api('/api/clientes', {
+        method: 'POST',
+        body: JSON.stringify({
+          numeroIdentificacion: document.getElementById('cli-id').value,
+          nombres: document.getElementById('cli-nom').value,
+          apellidoPaterno: document.getElementById('cli-ap1').value,
+          apellidoMaterno: document.getElementById('cli-ap2').value,
+          telefono: document.getElementById('cli-tel').value,
+          correoElectronico: document.getElementById('cli-mail').value,
+          ubicacion: document.getElementById('cli-ubi').value,
+          idBarrio: document.getElementById('cli-barrio').value
+        })
+      });
+      showAlert(res.mensaje, true); e.target.reset(); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function crearDomiciliario(e) {
+    e.preventDefault();
+    try {
+      const res = await api('/api/domiciliarios', {
+        method: 'POST',
+        body: JSON.stringify({
+          numeroIdentificacion: document.getElementById('dom-id').value,
+          nombres: document.getElementById('dom-nom').value,
+          apellidoPaterno: document.getElementById('dom-ap1').value,
+          telefono: document.getElementById('dom-tel').value,
+          correoElectronico: document.getElementById('dom-mail').value,
+          medioTransporte: document.getElementById('dom-trans').value,
+          estado: document.getElementById('dom-est').value
+        })
+      });
+      showAlert(res.mensaje, true); e.target.reset(); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function toggleDom(cod, estado) {
+    try {
+      const res = await api(`/api/domiciliarios/${cod}/estado`, { method: 'PUT', body: JSON.stringify({ estado }) });
+      showAlert(res.mensaje, true); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function crearEstablecimiento(e) {
+    e.preventDefault();
+    try {
+      const res = await api('/api/establecimientos', {
+        method: 'POST',
+        body: JSON.stringify({
+          nombreComercial: document.getElementById('est-nom').value,
+          tipoEstablecimiento: document.getElementById('est-tipo').value,
+          ubicacion: document.getElementById('est-ubi').value,
+          idBarrio: document.getElementById('est-barrio').value,
+          telefono: document.getElementById('est-tel').value,
+          correoElectronico: document.getElementById('est-mail').value
+        })
+      });
+      showAlert(res.mensaje, true); e.target.reset(); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  cargarTodo();
+</script>
+</body>
+</html>

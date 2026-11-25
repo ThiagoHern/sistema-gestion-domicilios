@@ -1,0 +1,15 @@
+{
+  "name": "Sistema Gestion Domicilios (Spring Boot + MySQL 8)",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/sistema-gestion-domicilios",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Interfaz Grafica Domicilios",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "mvn -q dependency:go-offline",
+  "postStartCommand": "nohup mvn spring-boot:run > /tmp/spring.log 2>&1 &"
+}
