@@ -3,69 +3,154 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Gestión de Domicilios - Cali</title>
+  <title>Sistema de Gestión de Domicilios - Cali | UAO</title>
   <style>
     :root {
-      --bg: #f5f7fa; --card: #ffffff; --border: #dce1e8;
-      --text: #1f2937; --muted: #6b7280; --primary: #1d4ed8;
-      --primary-hover: #1e40af;
+      --bg: #f1f5f9; --card: #ffffff; --border: #cbd5e1;
+      --text: #0f172a; --muted: #64748b; --primary: #1d4ed8;
+      --primary-hover: #1e40af; --danger: #dc2626; --success: #15803d;
     }
-    * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; background: var(--bg); color: var(--text); }
-    header { background: #0f172a; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    header {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff; padding: 16px 24px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
     header h1 { margin: 0; font-size: 1.2rem; }
-    header span { font-size: 0.85rem; color: #cbd5e1; }
-    nav { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 6px; overflow-x: auto; }
-    nav button { background: none; border: none; border-bottom: 3px solid transparent; padding: 12px 16px; cursor: pointer; font-weight: 600; color: var(--muted); }
+    header .sub { font-size: 0.84rem; color: #cbd5e1; }
+    .status-pill {
+      font-size: 0.78rem; padding: 5px 10px; border-radius: 99px;
+      background: rgba(255,255,255,0.12); color: #e2e8f0; font-weight: 600;
+    }
+    .status-pill.online { background: #14532d; color: #bbf7d0; }
+    .status-pill.offline { background: #7f1d1d; color: #fecaca; }
+
+    nav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 24px; display: flex; gap: 4px; overflow-x: auto;
+    }
+    nav button {
+      background: none; border: none; border-bottom: 3px solid transparent;
+      padding: 13px 16px; cursor: pointer; font-weight: 600; color: var(--muted); white-space: nowrap;
+    }
+    nav button:hover { color: var(--text); }
     nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
-    main { max-width: 1250px; margin: 20px auto; padding: 0 16px 40px; }
+
+    main { max-width: 1280px; margin: 20px auto; padding: 0 16px 48px; }
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px; margin-bottom: 18px;
+    }
+    .kpi {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    }
+    .kpi .label { font-size: 0.78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+    .kpi .val { font-size: 1.65rem; font-weight: 800; margin-top: 4px; color: #0f172a; }
+
     .tab { display: none; }
     .tab.active { display: block; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 18px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px; margin-bottom: 18px;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    }
     h2 { margin: 0 0 14px; font-size: 1.05rem; }
+    h3 { margin: 0 0 10px; font-size: 0.95rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
-    label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #374151; }
-    input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background: #fff; }
-    .btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.88rem; }
+    label { display: block; font-size: 0.81rem; font-weight: 600; margin-bottom: 4px; color: #334155; }
+    input, select {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 0.89rem; background: #fff;
+    }
+    .btn {
+      background: var(--primary); color: #fff; border: none;
+      padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.87rem;
+    }
     .btn:hover { background: var(--primary-hover); }
     .btn-sm { padding: 5px 9px; font-size: 0.78rem; }
     .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
-    .btn-danger { background: #dc2626; }
-    .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: none; font-weight: 500; }
+    .btn-outline:hover { background: #f8fafc; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #166534; }
+
+    .alert {
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+      display: none; font-weight: 600; font-size: 0.9rem;
+    }
     .alert.ok { display: block; background: #dcfce7; color: #166534; border: 1px solid #86efac; }
     .alert.err { display: block; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
     th { background: #f8fafc; font-weight: 700; color: #334155; }
     .table-wrap { overflow-x: auto; }
-    .badge { padding: 3px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+    .badge {
+      padding: 3px 8px; border-radius: 99px; font-size: 0.72rem;
+      font-weight: 700; text-transform: uppercase; display: inline-block;
+    }
     .b-creada { background: #e0f2fe; color: #0369a1; }
     .b-asignada { background: #fef3c7; color: #92400e; }
     .b-en-curso { background: #ede9fe; color: #5b21b6; }
     .b-finalizada { background: #dcfce7; color: #166534; }
     .b-cancelada { background: #fee2e2; color: #991b1b; }
     .b-activo { background: #dcfce7; color: #166534; }
-    .b-inactivo { background: #e5e7eb; color: #374151; }
+    .b-inactivo { background: #e2e8f0; color: #475569; }
     .inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+    .lab-card {
+      border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+      background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+    }
+    .lab-card p { margin: 0; font-size: 0.83rem; color: #475569; line-height: 1.4; }
+    pre {
+      background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 8px;
+      overflow-x: auto; font-size: 0.82rem; margin: 10px 0 0; line-height: 1.45;
+    }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.55);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 10px; max-width: 720px; width: 100%;
+      max-height: 85vh; overflow-y: auto; padding: 20px; box-shadow: 0 20px 45px rgba(0,0,0,0.25);
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>Sistema de Gestión de Operaciones de Domicilios — Cali</h1>
-  <span>Spring Boot + MySQL 8 | Bases de Datos 1 - UAO</span>
+  <div>
+    <h1>Sistema de Gestión de Operaciones de Domicilios — Cali</h1>
+    <div class="sub">Spring Boot 3 + MySQL 8 (InnoDB) | Proyecto Integrador Bases de Datos 1 — UAO</div>
+  </div>
+  <div id="db-status" class="status-pill">Conectando con MySQL...</div>
 </header>
 
 <nav>
-  <button class="active" onclick="openTab('tab-solicitudes', this)">Solicitudes (SP + Funciones)</button>
-  <button onclick="openTab('tab-incidentes', this)">Incidentes y Auditoría (Triggers)</button>
-  <button onclick="openTab('tab-entidades', this)">Clientes, Domiciliarios y Aliados</button>
-  <button onclick="openTab('tab-vistas', this)">Vistas Analíticas (VIEWS)</button>
+  <button class="active" onclick="openTab('tab-solicitudes', this)">1. Solicitudes (SP + Funciones)</button>
+  <button onclick="openTab('tab-incidentes', this)">2. Incidentes y Auditoría (Triggers)</button>
+  <button onclick="openTab('tab-entidades', this)">3. Clientes, Domiciliarios y Aliados</button>
+  <button onclick="openTab('tab-vistas', this)">4. Vistas Analíticas (VIEWS)</button>
+  <button onclick="openTab('tab-lab', this)">5. Laboratorio Reglas de Negocio</button>
 </nav>
 
 <main>
   <div id="alert" class="alert"></div>
 
+  <section class="kpi-grid">
+    <div class="kpi"><div class="label">Total Solicitudes</div><div class="val" id="kpi-total">0</div></div>
+    <div class="kpi"><div class="label">Activas en Operación</div><div class="val" id="kpi-activas">0</div></div>
+    <div class="kpi"><div class="label">Finalizadas</div><div class="val" id="kpi-finalizadas">0</div></div>
+    <div class="kpi"><div class="label">Domiciliarios Activos</div><div class="val" id="kpi-doms">0</div></div>
+    <div class="kpi"><div class="label">Incidentes Reportados</div><div class="val" id="kpi-incs">0</div></div>
+  </section>
+
+  <!-- TAB 1: SOLICITUDES -->
   <section id="tab-solicitudes" class="tab active">
     <div class="card">
       <h2>Nueva Solicitud de Domicilio (invoca <code>sp_registrar_solicitud</code>)</h2>
@@ -76,7 +161,7 @@
             <select id="sol-cliente" required onchange="filtrarDireccionesCliente()"></select>
           </div>
           <div>
-            <label>Dirección de Entrega (del cliente)</label>
+            <label>Dirección de Entrega (RN-04 del cliente)</label>
             <select id="sol-direccion" required></select>
           </div>
           <div>
@@ -96,7 +181,7 @@
             <input id="sol-monto" type="number" step="0.01" min="0" value="35000" required>
           </div>
           <div>
-            <label>Tipo de Punto de Recogida (RN-03 Exclusivo)</label>
+            <label>Punto de Recogida (RN-03 Exclusivo)</label>
             <select id="sol-tipo-origen" onchange="toggleOrigen()">
               <option value="aliado">Establecimiento Aliado</option>
               <option value="externo">Dirección Externa</option>
@@ -122,16 +207,27 @@
     </div>
 
     <div class="card">
-      <div class="inline" style="justify-content:space-between; margin-bottom:10px">
-        <h2 style="margin:0">Solicitudes Registradas (incluye tarifa por función SQL)</h2>
-        <button class="btn btn-outline btn-sm" onclick="cargarTodo()">Actualizar</button>
+      <div class="inline" style="justify-content:space-between; margin-bottom:12px">
+        <h2 style="margin:0">Solicitudes Registradas</h2>
+        <div class="inline">
+          <select id="filtro-estado" onchange="renderSolicitudes()" style="width:165px">
+            <option value="">Todos los estados</option>
+            <option value="creada">creada</option>
+            <option value="asignada">asignada</option>
+            <option value="en curso">en curso</option>
+            <option value="finalizada">finalizada</option>
+            <option value="cancelada">cancelada</option>
+          </select>
+          <input id="filtro-texto" oninput="renderSolicitudes()" placeholder="Buscar cliente u origen..." style="width:210px">
+          <button class="btn btn-outline btn-sm" onclick="cargarTodo()">Actualizar</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>#</th><th>Estado</th><th>Cliente</th><th>Origen</th><th>Destino (Barrio/Comuna)</th>
-              <th>Monto / Tarifa</th><th>Domiciliario</th><th>Inc.</th><th>Acciones (SP)</th>
+              <th>Monto / Tarifa SQL</th><th>Domiciliario</th><th>Inc.</th><th>Acciones (SP)</th>
             </tr>
           </thead>
           <tbody id="tb-solicitudes"></tbody>
@@ -140,6 +236,7 @@
     </div>
   </section>
 
+  <!-- TAB 2: INCIDENTES Y AUDITORÍA -->
   <section id="tab-incidentes" class="tab">
     <div class="card">
       <h2>Registrar Incidente (dispara <code>trg_validar_incidente_fecha</code> y <code>trg_auditar_incidente</code>)</h2>
@@ -164,7 +261,7 @@
           </div>
           <div>
             <label>Descripción</label>
-            <input id="inc-desc" required placeholder="Detalle del incidente">
+            <input id="inc-desc" required placeholder="Detalle de la novedad">
           </div>
         </div>
         <div style="margin-top:12px">
@@ -187,13 +284,14 @@
       <h2>Bitácora Automática — <code>AuditoriaSistema</code> (poblada por Triggers)</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Tabla</th><th>Acción</th><th>Reg. ID</th><th>Detalle</th><th>Fecha/Hora</th></tr></thead>
+          <thead><tr><th>ID</th><th>Tabla</th><th>Acción</th><th>Reg. ID</th><th>Detalle</th><th>Fecha/Hora</th><th>Usuario BD</th></tr></thead>
           <tbody id="tb-auditoria"></tbody>
         </table>
       </div>
     </div>
   </section>
 
+  <!-- TAB 3: ENTIDADES -->
   <section id="tab-entidades" class="tab">
     <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr))">
       <div class="card">
@@ -208,6 +306,17 @@
           <div><label>Ubicación Entrega</label><input id="cli-ubi" required placeholder="Calle / Carrera"></div>
           <div><label>Barrio</label><select id="cli-barrio" required></select></div>
           <div style="grid-column:1/-1"><button class="btn" type="submit">Guardar Cliente</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Agregar Dirección a Cliente Existente (RN-02)</h2>
+        <form onsubmit="crearDireccion(event)" class="grid">
+          <div><label>Cliente</label><select id="dir-cli" required></select></div>
+          <div><label>Ubicación</label><input id="dir-ubi" required placeholder="Ej: Av. Roosevelt # 26-40"></div>
+          <div><label>Barrio</label><select id="dir-barrio" required></select></div>
+          <div><label>Referencia (opcional)</label><input id="dir-ref" placeholder="Ej: Torre B Apto 402"></div>
+          <div style="grid-column:1/-1"><button class="btn" type="submit">Agregar Dirección</button></div>
         </form>
       </div>
 
@@ -237,58 +346,159 @@
           <div style="grid-column:1/-1"><button class="btn" type="submit">Guardar Domiciliario</button></div>
         </form>
       </div>
+
+      <div class="card">
+        <h2>Nuevo Establecimiento Aliado</h2>
+        <form onsubmit="crearEstablecimiento(event)" class="grid">
+          <div><label>Nombre Comercial</label><input id="est-nom" required></div>
+          <div>
+            <label>Tipo</label>
+            <select id="est-tipo">
+              <option value="restaurante">restaurante</option>
+              <option value="farmacia">farmacia</option>
+              <option value="supermercado">supermercado</option>
+              <option value="tienda especializada">tienda especializada</option>
+            </select>
+          </div>
+          <div><label>Ubicación</label><input id="est-ubi" required></div>
+          <div><label>Barrio</label><select id="est-barrio" required></select></div>
+          <div><label>Teléfono</label><input id="est-tel" required></div>
+          <div><label>Correo (opcional)</label><input id="est-mail" type="email"></div>
+          <div style="grid-column:1/-1"><button class="btn" type="submit">Guardar Establecimiento</button></div>
+        </form>
+      </div>
     </div>
 
     <div class="card">
-      <h2>Domiciliarios (cambia estado para probar rechazo de asignación)</h2>
+      <h2>Clientes y Direcciones Registradas</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Código</th><th>Nombre</th><th>Transporte</th><th>Estado</th><th>Acción</th></tr></thead>
+          <thead><tr><th>Identificación</th><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Direcciones</th></tr></thead>
+          <tbody id="tb-clientes"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Domiciliarios (cambia estado para probar rechazo RN-05)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Identificación</th><th>Nombre</th><th>Transporte</th><th>Estado</th><th>Acción</th></tr></thead>
           <tbody id="tb-domiciliarios"></tbody>
         </table>
       </div>
     </div>
 
     <div class="card">
-      <h2>Nuevo Establecimiento Aliado</h2>
-      <form onsubmit="crearEstablecimiento(event)" class="grid">
-        <div><label>Nombre Comercial</label><input id="est-nom" required></div>
-        <div>
-          <label>Tipo</label>
-          <select id="est-tipo">
-            <option value="restaurante">restaurante</option>
-            <option value="farmacia">farmacia</option>
-            <option value="supermercado">supermercado</option>
-            <option value="tienda especializada">tienda especializada</option>
-          </select>
-        </div>
-        <div><label>Ubicación</label><input id="est-ubi" required></div>
-        <div><label>Barrio</label><select id="est-barrio" required></select></div>
-        <div><label>Teléfono</label><input id="est-tel" required></div>
-        <div><label>Correo (opcional)</label><input id="est-mail" type="email"></div>
-        <div style="grid-column:1/-1"><button class="btn" type="submit">Guardar Establecimiento</button></div>
-      </form>
+      <h2>Establecimientos Aliados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Nombre Comercial</th><th>Tipo</th><th>Ubicación / Barrio</th><th>Teléfono</th></tr></thead>
+          <tbody id="tb-establecimientos"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
+  <!-- TAB 4: VISTAS ANALÍTICAS -->
   <section id="tab-vistas" class="tab">
     <div class="card">
       <h2>Vista 1: <code>vw_solicitudes_activas_cali</code></h2>
-      <div class="table-wrap"><table><thead><tr><th>#</th><th>Estado</th><th>Cliente</th><th>Origen</th><th>Destino</th><th>Comuna</th><th>Domiciliario</th><th>Monto</th></tr></thead><tbody id="tb-v-activas"></tbody></table></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Estado</th><th>Cliente</th><th>Origen</th><th>Destino</th><th>Comuna</th><th>Domiciliario</th><th>Monto / Tarifa</th></tr></thead>
+          <tbody id="tb-v-activas"></tbody>
+        </table>
+      </div>
     </div>
     <div class="card">
       <h2>Vista 2: <code>vw_resumen_domiciliarios</code></h2>
-      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Transporte</th><th>Estado</th><th>Asignadas</th><th>Finalizadas</th><th>Monto Finalizado</th><th>Incidentes</th></tr></thead><tbody id="tb-v-doms"></tbody></table></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Nombre</th><th>Transporte</th><th>Estado</th><th>Asignadas</th><th>Finalizadas</th><th>Monto Finalizado</th><th>Incidentes</th></tr></thead>
+          <tbody id="tb-v-doms"></tbody>
+        </table>
+      </div>
     </div>
     <div class="card">
       <h2>Vista 3: <code>vw_resumen_establecimientos</code></h2>
-      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Establecimiento</th><th>Tipo</th><th>Barrio / Comuna</th><th>Solicitudes</th><th>Facturado</th></tr></thead><tbody id="tb-v-ests"></tbody></table></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Establecimiento</th><th>Tipo</th><th>Barrio / Comuna</th><th>Solicitudes</th><th>Facturado</th></tr></thead>
+          <tbody id="tb-v-ests"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 5: LABORATORIO DE REGLAS DE NEGOCIO -->
+  <section id="tab-lab" class="tab">
+    <div class="card">
+      <h2>Laboratorio en Vivo de Reglas de Negocio (Pruebas Negativas contra MySQL 8)</h2>
+      <p style="font-size:0.88rem;color:#475569;margin-top:0">
+        Haz clic en cualquier escenario para enviar una petición inválida real al backend Spring Boot y verificar cómo los Stored Procedures, Constraints <code>CHECK</code>, Claves Foráneas Compuestas y Triggers de MySQL protegen la integridad de la base de datos.
+      </p>
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">
+        <div class="lab-card">
+          <div>
+            <h3>RN-03: Exclusividad de Recogida</h3>
+            <p>Intenta crear una solicitud enviando <strong>ambos</strong> orígenes a la vez: establecimiento <code>101</code> y dirección externa.</p>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="probarRN('rn03')">Probar Rechazo RN-03</button>
+        </div>
+
+        <div class="lab-card">
+          <div>
+            <h3>RN-04: Dirección Ajena al Cliente</h3>
+            <p>Intenta crear una solicitud para el cliente <code>1001</code> usando la dirección <code>#3</code> (que pertenece a <code>1002</code>).</p>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="probarRN('rn04')">Probar Rechazo RN-04</button>
+        </div>
+
+        <div class="lab-card">
+          <div>
+            <h3>RN-05: Domiciliario Inactivo (ROLLBACK)</h3>
+            <p>Intenta asignar una solicitud en estado <code>creada</code> al domiciliario <code>#3 Julián Castro</code> (<code>inactivo</code>).</p>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="probarRN('rn05')">Probar Rechazo RN-05</button>
+        </div>
+
+        <div class="lab-card">
+          <div>
+            <h3>Trigger: Fecha de Incidente Inválida</h3>
+            <p>Intenta registrar un incidente en la solicitud <code>#501</code> con fecha del año <code>2020</code> (anterior a su creación).</p>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="probarRN('trg_fecha')">Probar Trigger Fecha</button>
+        </div>
+
+        <div class="lab-card">
+          <div>
+            <h3>RN-06: Máquina de Estados</h3>
+            <p>Intenta pasar directamente a <code>finalizada</code> una solicitud que aún está en estado <code>creada</code>.</p>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="probarRN('estado')">Probar Transición Inválida</button>
+        </div>
+      </div>
+
+      <h3 style="margin-top:16px">Respuesta Real del Servidor (HTTP + MySQL 8)</h3>
+      <pre id="lab-output">Ejecuta una prueba arriba para ver la respuesta JSON...</pre>
     </div>
   </section>
 </main>
 
+<!-- MODAL DETALLE SOLICITUD -->
+<div id="modal-bg" class="modal-backdrop" onclick="if(event.target===this) cerrarModal()">
+  <div class="modal">
+    <div class="inline" style="justify-content:space-between; margin-bottom:12px">
+      <h2 id="modal-title" style="margin:0">Detalle de Solicitud</h2>
+      <button class="btn btn-outline btn-sm" onclick="cerrarModal()">Cerrar</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
 <script>
-  let state = { barrios: [], clientes: [], direcciones: [], domiciliarios: [], establecimientos: [], solicitudes: [] };
+  let state = { barrios: [], clientes: [], direcciones: [], domiciliarios: [], establecimientos: [], solicitudes: [], incidentes: [] };
 
   const esc = v => (v == null ? '' : String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
   const badgeClass = s => 'b-' + String(s || '').toLowerCase().replace(/\s+/g, '-');
@@ -311,7 +521,7 @@
   async function api(url, opts = {}) {
     const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.mensaje || 'Error en la operación');
+    if (!res.ok) throw { status: res.status, data, message: data.mensaje || 'Error en la operación' };
     return data;
   }
 
@@ -330,20 +540,81 @@
     ).join('') || '<option value="">Sin direcciones</option>';
   }
 
+  function renderSolicitudes() {
+    const estFiltro = document.getElementById('filtro-estado').value;
+    const txtFiltro = document.getElementById('filtro-texto').value.trim().toLowerCase();
+    const domOpts = state.domiciliarios.map(d =>
+      `<option value="${d.codigoDomiciliario}">#${d.codigoDomiciliario} ${esc(d.nombreCompleto)} [${esc(d.estado)}]</option>`
+    ).join('');
+
+    const filtradas = state.solicitudes.filter(s => {
+      if (estFiltro && s.estado !== estFiltro) return false;
+      if (txtFiltro) {
+        const blob = `${s.numeroSolicitud} ${s.clienteNombre} ${s.puntoRecogida} ${s.direccionEntrega}`.toLowerCase();
+        if (!blob.includes(txtFiltro)) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('tb-solicitudes').innerHTML = filtradas.map(s => `
+      <tr>
+        <td><strong>#${s.numeroSolicitud}</strong></td>
+        <td><span class="badge ${badgeClass(s.estado)}">${esc(s.estado)}</span></td>
+        <td>${esc(s.clienteNombre)}</td>
+        <td><small>${esc(s.tipoOrigen)}:</small><br>${esc(s.puntoRecogida)}</td>
+        <td>${esc(s.direccionEntrega)}<br><small>${esc(s.nombreBarrio)} (C${esc(s.comuna)})</small></td>
+        <td>${money(s.montoTotal)}<br><small>Tarifa: ${money(s.tarifaDomicilio)}</small></td>
+        <td>${s.domiciliarioNombre ? '#' + s.codigoDomiciliario + ' ' + esc(s.domiciliarioNombre) : '<em>Sin asignar</em>'}</td>
+        <td>${s.totalIncidentes}</td>
+        <td>
+          <div class="inline">
+            <button class="btn btn-outline btn-sm" onclick="verDetalle(${s.numeroSolicitud})">Ver</button>
+            ${s.estado === 'creada' ? `
+              <select id="asig-${s.numeroSolicitud}" style="width:145px;padding:4px">${domOpts}</select>
+              <button class="btn btn-sm" onclick="asignar(${s.numeroSolicitud})">Asignar</button>
+              <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
+            ` : ''}
+            ${s.estado === 'asignada' ? `
+              <button class="btn btn-sm" onclick="cambiarEstado(${s.numeroSolicitud}, 'en curso')">Iniciar</button>
+              <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
+            ` : ''}
+            ${s.estado === 'en curso' ? `
+              <button class="btn btn-sm btn-success" onclick="cambiarEstado(${s.numeroSolicitud}, 'finalizada')">Finalizar</button>
+              <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
   async function cargarTodo() {
+    const badge = document.getElementById('db-status');
     try {
-      const [cat, sols, incs, aud, vistas] = await Promise.all([
-        api('/api/catalogos'), api('/api/solicitudes'), api('/api/incidentes'),
-        api('/api/auditoria'), api('/api/vistas')
+      const [health, cat, sols, incs, aud, vistas] = await Promise.all([
+        api('/api/health'), api('/api/catalogos'), api('/api/solicitudes'),
+        api('/api/incidentes'), api('/api/auditoria'), api('/api/vistas')
       ]);
-      state = { ...cat, solicitudes: sols };
+      badge.textContent = 'MySQL 8 Conectado';
+      badge.className = 'status-pill online';
+
+      state = { ...cat, solicitudes: sols, incidentes: incs };
+
+      document.getElementById('kpi-total').textContent = sols.length;
+      document.getElementById('kpi-activas').textContent = sols.filter(s => ['creada','asignada','en curso'].includes(s.estado)).length;
+      document.getElementById('kpi-finalizadas').textContent = sols.filter(s => s.estado === 'finalizada').length;
+      document.getElementById('kpi-doms').textContent = cat.domiciliarios.filter(d => d.estado === 'activo').length;
+      document.getElementById('kpi-incs').textContent = incs.length;
 
       const optBarrios = cat.barrios.map(b => `<option value="${b.idBarrio}">${esc(b.nombreBarrio)} (Comuna ${esc(b.comuna)})</option>`).join('');
-      ['sol-ext-barrio', 'cli-barrio', 'est-barrio'].forEach(id => document.getElementById(id).innerHTML = optBarrios);
+      ['sol-ext-barrio', 'cli-barrio', 'dir-barrio', 'est-barrio'].forEach(id => {
+        document.getElementById(id).innerHTML = optBarrios;
+      });
 
-      document.getElementById('sol-cliente').innerHTML = cat.clientes.map(c =>
+      const optClientes = cat.clientes.map(c =>
         `<option value="${esc(c.numeroIdentificacion)}">${esc(c.nombres)} ${esc(c.apellidoPaterno)} (${esc(c.numeroIdentificacion)})</option>`
       ).join('');
+      document.getElementById('sol-cliente').innerHTML = optClientes;
+      document.getElementById('dir-cli').innerHTML = optClientes;
       filtrarDireccionesCliente();
 
       document.getElementById('sol-aliado').innerHTML = cat.establecimientos.map(e =>
@@ -354,59 +625,37 @@
         `<option value="${s.numeroSolicitud}">#${s.numeroSolicitud} - ${esc(s.clienteNombre)} (${esc(s.estado)})</option>`
       ).join('');
 
-      const domOpts = cat.domiciliarios.map(d =>
-        `<option value="${d.codigoDomiciliario}">#${d.codigoDomiciliario} ${esc(d.nombreCompleto)} [${esc(d.estado)}]</option>`
-      ).join('');
-
-      document.getElementById('tb-solicitudes').innerHTML = sols.map(s => `
-        <tr>
-          <td><strong>#${s.numeroSolicitud}</strong></td>
-          <td><span class="badge ${badgeClass(s.estado)}">${esc(s.estado)}</span></td>
-          <td>${esc(s.clienteNombre)}</td>
-          <td><small>${esc(s.tipoOrigen)}:</small><br>${esc(s.puntoRecogida)}</td>
-          <td>${esc(s.direccionEntrega)}<br><small>${esc(s.nombreBarrio)} (C${esc(s.comuna)})</small></td>
-          <td>${money(s.montoTotal)}<br><small>Tarifa: ${money(s.tarifaDomicilio)}</small></td>
-          <td>${s.domiciliarioNombre ? '#' + s.codigoDomiciliario + ' ' + esc(s.domiciliarioNombre) : '<em>Sin asignar</em>'}</td>
-          <td>${s.totalIncidentes}</td>
-          <td>
-            ${s.estado === 'creada' ? `
-              <div class="inline">
-                <select id="asig-${s.numeroSolicitud}" style="width:140px;padding:4px">${domOpts}</select>
-                <button class="btn btn-sm" onclick="asignar(${s.numeroSolicitud})">Asignar</button>
-                <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
-              </div>` : ''}
-            ${s.estado === 'asignada' ? `
-              <div class="inline">
-                <button class="btn btn-sm" onclick="cambiarEstado(${s.numeroSolicitud}, 'en curso')">Iniciar</button>
-                <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
-              </div>` : ''}
-            ${s.estado === 'en curso' ? `
-              <div class="inline">
-                <button class="btn btn-sm" onclick="cambiarEstado(${s.numeroSolicitud}, 'finalizada')">Finalizar</button>
-                <button class="btn btn-sm btn-danger" onclick="cambiarEstado(${s.numeroSolicitud}, 'cancelada')">Cancelar</button>
-              </div>` : ''}
-          </td>
-        </tr>`).join('');
+      renderSolicitudes();
 
       document.getElementById('tb-incidentes').innerHTML = incs.map(i => `
         <tr><td>#${i.codigoIncidente}</td><td>#${i.numeroSolicitud}</td><td>${esc(i.tipoIncidente)}</td><td>${esc(i.descripcion)}</td><td>${esc(i.fechaHoraIncidente)}</td></tr>
       `).join('');
 
       document.getElementById('tb-auditoria').innerHTML = aud.map(a => `
-        <tr><td>${a.idAuditoria}</td><td><code>${esc(a.tablaAfectada)}</code></td><td>${esc(a.accion)}</td><td>#${a.registroId}</td><td>${esc(a.detalle)}</td><td>${esc(a.fechaHoraRegistro)}</td></tr>
+        <tr><td>${a.idAuditoria}</td><td><code>${esc(a.tablaAfectada)}</code></td><td>${esc(a.accion)}</td><td>#${a.registroId}</td><td>${esc(a.detalle)}</td><td>${esc(a.fechaHoraRegistro)}</td><td><small>${esc(a.usuarioBD)}</small></td></tr>
       `).join('');
+
+      document.getElementById('tb-clientes').innerHTML = cat.clientes.map(c => {
+        const dirs = cat.direcciones.filter(d => d.numeroIdentificacionCliente === c.numeroIdentificacion)
+          .map(d => `${esc(d.ubicacion)} (${esc(d.nombreBarrio)})`).join(' | ');
+        return `<tr><td>${esc(c.numeroIdentificacion)}</td><td>${esc(c.nombres)} ${esc(c.apellidoPaterno)} ${esc(c.apellidoMaterno || '')}</td><td>${esc(c.telefono)}</td><td>${esc(c.correoElectronico)}</td><td><small>${dirs || 'Sin direcciones'}</small></td></tr>`;
+      }).join('');
 
       document.getElementById('tb-domiciliarios').innerHTML = cat.domiciliarios.map(d => {
         const nuevo = d.estado === 'activo' ? 'inactivo' : 'activo';
         return `<tr>
-          <td>#${d.codigoDomiciliario}</td><td>${esc(d.nombreCompleto)}</td><td>${esc(d.medioTransporte)}</td>
+          <td>#${d.codigoDomiciliario}</td><td>${esc(d.numeroIdentificacion)}</td><td>${esc(d.nombreCompleto)}</td><td>${esc(d.medioTransporte)}</td>
           <td><span class="badge ${badgeClass(d.estado)}">${esc(d.estado)}</span></td>
           <td><button class="btn btn-sm btn-outline" onclick="toggleDom(${d.codigoDomiciliario}, '${nuevo}')">Cambiar a ${nuevo}</button></td>
         </tr>`;
       }).join('');
 
+      document.getElementById('tb-establecimientos').innerHTML = cat.establecimientos.map(e => `
+        <tr><td>#${e.codigoEstablecimiento}</td><td>${esc(e.nombreComercial)}</td><td>${esc(e.tipoEstablecimiento)}</td><td>${esc(e.ubicacion)} — ${esc(e.nombreBarrio)} (C${esc(e.comuna)})</td><td>${esc(e.telefono)}</td></tr>
+      `).join('');
+
       document.getElementById('tb-v-activas').innerHTML = vistas.activas.map(v => `
-        <tr><td>#${v.numeroSolicitud}</td><td><span class="badge ${badgeClass(v.estado)}">${esc(v.estado)}</span></td><td>${esc(v.clienteNombre)}</td><td>${esc(v.puntoRecogida)}</td><td>${esc(v.direccionDestino)}</td><td>C${esc(v.comunaDestino)}</td><td>${esc(v.domiciliarioNombre || 'Sin asignar')}</td><td>${money(v.montoTotal)}</td></tr>
+        <tr><td>#${v.numeroSolicitud}</td><td><span class="badge ${badgeClass(v.estado)}">${esc(v.estado)}</span></td><td>${esc(v.clienteNombre)}</td><td>${esc(v.puntoRecogida)}</td><td>${esc(v.direccionDestino)}</td><td>C${esc(v.comunaDestino)}</td><td>${esc(v.domiciliarioNombre || 'Sin asignar')}</td><td>${money(v.montoTotal)}<br><small>Tarifa: ${money(v.tarifaDomicilio)}</small></td></tr>
       `).join('');
       document.getElementById('tb-v-doms').innerHTML = vistas.domiciliarios.map(v => `
         <tr><td>#${v.codigoDomiciliario}</td><td>${esc(v.nombreDomiciliario)}</td><td>${esc(v.medioTransporte)}</td><td>${esc(v.estado)}</td><td>${v.totalSolicitudesAsignadas}</td><td>${v.solicitudesFinalizadas}</td><td>${money(v.montoFinalizado)}</td><td>${v.totalIncidentes}</td></tr>
@@ -414,9 +663,36 @@
       document.getElementById('tb-v-ests').innerHTML = vistas.establecimientos.map(v => `
         <tr><td>#${v.codigoEstablecimiento}</td><td>${esc(v.nombreComercial)}</td><td>${esc(v.tipoEstablecimiento)}</td><td>${esc(v.nombreBarrio)} (C${esc(v.comuna)})</td><td>${v.totalSolicitudes}</td><td>${money(v.montoFacturado)}</td></tr>
       `).join('');
-
-    } catch (e) { showAlert(e.message, false); }
+    } catch (e) {
+      badge.textContent = 'Sin conexión MySQL';
+      badge.className = 'status-pill offline';
+      showAlert(e.message || 'Error conectando con el servidor', false);
+    }
   }
+
+  async function verDetalle(id) {
+    try {
+      const s = await api(`/api/solicitudes/${id}`);
+      document.getElementById('modal-title').textContent = `Solicitud #${s.numeroSolicitud} (${s.estado})`;
+      const incs = (s.incidentes || []).map(i =>
+        `<li><strong>[${esc(i.tipoIncidente)}]</strong> ${esc(i.descripcion)} <small>(${esc(i.fechaHoraIncidente)})</small></li>`
+      ).join('');
+      document.getElementById('modal-body').innerHTML = `
+        <p><strong>Cliente:</strong> ${esc(s.clienteNombre)} (${esc(s.numeroIdentificacionCliente)}) — Tel: ${esc(s.clienteTelefono)}</p>
+        <p><strong>Origen (${esc(s.tipoOrigen)}):</strong> ${esc(s.puntoRecogida)}</p>
+        <p><strong>Destino:</strong> ${esc(s.direccionEntrega)} — ${esc(s.nombreBarrio)} (Comuna ${esc(s.comuna)})</p>
+        <p><strong>Descripción:</strong> ${esc(s.descripcionRecogida)}</p>
+        <p><strong>Pago y Monto:</strong> ${esc(s.metodoPago)} — ${money(s.montoTotal)} (Tarifa domicilio SQL: ${money(s.tarifaDomicilio)})</p>
+        <p><strong>Domiciliario:</strong> ${s.domiciliarioNombre ? esc(s.domiciliarioNombre) + ' (' + esc(s.medioTransporte) + ')' : 'Sin asignar'}</p>
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:12px 0">
+        <h3>Incidentes (${(s.incidentes || []).length})</h3>
+        ${incs ? `<ul>${incs}</ul>` : '<p style="color:#64748b">No se han registrado incidentes para esta solicitud.</p>'}
+      `;
+      document.getElementById('modal-bg').classList.add('open');
+    } catch (err) { showAlert(err.message, false); }
+  }
+
+  function cerrarModal() { document.getElementById('modal-bg').classList.remove('open'); }
 
   async function crearSolicitud(e) {
     e.preventDefault();
@@ -491,6 +767,22 @@
     } catch (err) { showAlert(err.message, false); }
   }
 
+  async function crearDireccion(e) {
+    e.preventDefault();
+    try {
+      const res = await api('/api/direcciones', {
+        method: 'POST',
+        body: JSON.stringify({
+          numeroIdentificacionCliente: document.getElementById('dir-cli').value,
+          ubicacion: document.getElementById('dir-ubi').value,
+          idBarrio: document.getElementById('dir-barrio').value,
+          referenciaAdicional: document.getElementById('dir-ref').value
+        })
+      });
+      showAlert(res.mensaje, true); e.target.reset(); cargarTodo();
+    } catch (err) { showAlert(err.message, false); }
+  }
+
   async function crearDomiciliario(e) {
     e.preventDefault();
     try {
@@ -533,6 +825,56 @@
       });
       showAlert(res.mensaje, true); e.target.reset(); cargarTodo();
     } catch (err) { showAlert(err.message, false); }
+  }
+
+  async function probarRN(caso) {
+    const out = document.getElementById('lab-output');
+    const creada = state.solicitudes.find(s => s.estado === 'creada');
+    const solId = creada ? creada.numeroSolicitud : 501;
+    let url = '', method = 'POST', payload = {};
+
+    if (caso === 'rn03') {
+      url = '/api/solicitudes';
+      payload = {
+        numeroIdentificacionCliente: '1001', idDireccion: 1,
+        descripcionRecogida: 'Prueba RN-03 doble origen', metodoPago: 'efectivo', montoTotal: 25000,
+        codigoEstablecimiento: 101, ubicacionRecogidaExterna: 'Calle 10 # 5-20', idBarrioRecogidaExterna: 1
+      };
+    } else if (caso === 'rn04') {
+      url = '/api/solicitudes';
+      payload = {
+        numeroIdentificacionCliente: '1001', idDireccion: 3,
+        descripcionRecogida: 'Prueba RN-04 direccion ajena', metodoPago: 'efectivo', montoTotal: 25000,
+        codigoEstablecimiento: 101
+      };
+    } else if (caso === 'rn05') {
+      url = `/api/solicitudes/${solId}/asignar`;
+      method = 'PUT';
+      payload = { codigoDomiciliario: 3 };
+    } else if (caso === 'trg_fecha') {
+      url = '/api/incidentes';
+      payload = {
+        numeroSolicitud: solId, tipoIncidente: 'retraso',
+        fechaHoraIncidente: '2020-01-01T08:00', descripcion: 'Prueba trigger fecha anterior'
+      };
+    } else if (caso === 'estado') {
+      url = `/api/solicitudes/${solId}/estado`;
+      method = 'PUT';
+      payload = { estado: 'finalizada' };
+    }
+
+    out.textContent = `Enviando ${method} ${url}\nPayload:\n${JSON.stringify(payload, null, 2)}\n...`;
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      out.textContent = `${method} ${url}\nHTTP Status: ${res.status}\n\nRespuesta:\n${JSON.stringify(data, null, 2)}`;
+    } catch (err) {
+      out.textContent = `Error de red: ${err}`;
+    }
   }
 
   cargarTodo();

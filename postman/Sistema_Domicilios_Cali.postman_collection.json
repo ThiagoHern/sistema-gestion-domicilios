@@ -1,0 +1,340 @@
+{
+  "info": {
+    "_postman_id": "a7f18b2d-5e43-4a9c-9c12-uao-domicilios-2026",
+    "name": "Sistema de Gestión de Domicilios - Cali (UAO)",
+    "description": "Colección completa de pruebas REST para el Proyecto Integrador de Bases de Datos 1 (Spring Boot + MySQL 8).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "solicitudCreadaId", "value": "501", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Salud y Catálogos",
+      "item": [
+        {
+          "name": "Health Check MySQL + Spring Boot",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('MySQL conectado', () => pm.expect(pm.response.json().ok).to.eql(true));"
+            ]}
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+        },
+        {
+          "name": "Obtener todos los catálogos",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Contiene barrios, clientes, domiciliarios y establecimientos', () => {",
+              "  pm.expect(json).to.have.property('barrios');",
+              "  pm.expect(json).to.have.property('clientes');",
+              "  pm.expect(json).to.have.property('domiciliarios');",
+              "  pm.expect(json).to.have.property('establecimientos');",
+              "});"
+            ]}
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/catalogos" }
+        }
+      ]
+    },
+    {
+      "name": "2. Entidades (Clientes, Direcciones, Domiciliarios, Aliados)",
+      "item": [
+        {
+          "name": "Listar Clientes",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Lista es un arreglo', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes" }
+        },
+        {
+          "name": "Crear Cliente + Dirección Inicial",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201 Created o 409 si ya existe', () => pm.expect([201, 409]).to.include(pm.response.code));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroIdentificacion\": \"1099\",\n  \"nombres\": \"Valentina\",\n  \"apellidoPaterno\": \"Ríos\",\n  \"apellidoMaterno\": \"Salazar\",\n  \"telefono\": \"3119998877\",\n  \"correoElectronico\": \"valentina.rios@example.com\",\n  \"ubicacion\": \"Calle 16 # 85-20\",\n  \"idBarrio\": 2,\n  \"referenciaAdicional\": \"Conjunto El Ingenio\"\n}" },
+            "url": "{{baseUrl}}/api/clientes"
+          }
+        },
+        {
+          "name": "Agregar Dirección a Cliente (RN-02)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201 Created', () => pm.response.to.have.status(201));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroIdentificacionCliente\": \"1001\",\n  \"ubicacion\": \"Avenida Roosevelt # 25-40\",\n  \"idBarrio\": 1,\n  \"referenciaAdicional\": \"Oficina 202\"\n}" },
+            "url": "{{baseUrl}}/api/direcciones"
+          }
+        },
+        {
+          "name": "Listar Domiciliarios",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/domiciliarios" }
+        },
+        {
+          "name": "Listar Establecimientos Aliados",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/establecimientos" }
+        }
+      ]
+    },
+    {
+      "name": "3. Ciclo de Vida de Solicitudes (SP ACID)",
+      "item": [
+        {
+          "name": "Listar Solicitudes (con tarifa SQL e incidentes)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "const arr = pm.response.json();",
+            "pm.test('Incluye campo tarifaDomicilio', () => pm.expect(arr[0]).to.have.property('tarifaDomicilio'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/solicitudes" }
+        },
+        {
+          "name": "Crear Solicitud en Establecimiento Aliado (sp_registrar_solicitud)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.test('Solicitud creada exitosamente', () => pm.expect(json.ok).to.eql(true));",
+            "if (json.numeroSolicitud) pm.collectionVariables.set('solicitudCreadaId', json.numeroSolicitud);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroIdentificacionCliente\": \"1001\",\n  \"idDireccion\": 1,\n  \"descripcionRecogida\": \"Almuerzo ejecutivo #4582\",\n  \"metodoPago\": \"efectivo\",\n  \"montoTotal\": 42000,\n  \"codigoEstablecimiento\": 101,\n  \"ubicacionRecogidaExterna\": null,\n  \"idBarrioRecogidaExterna\": null\n}" },
+            "url": "{{baseUrl}}/api/solicitudes"
+          }
+        },
+        {
+          "name": "Crear Solicitud con Recogida Externa (sp_registrar_solicitud)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Solicitud externa creada', () => pm.expect(pm.response.json().ok).to.eql(true));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroIdentificacionCliente\": \"1002\",\n  \"idDireccion\": 3,\n  \"descripcionRecogida\": \"Paquete de documentos urgentes\",\n  \"metodoPago\": \"electrónico\",\n  \"montoTotal\": 90000,\n  \"codigoEstablecimiento\": null,\n  \"ubicacionRecogidaExterna\": \"Calle 5 # 38-25\",\n  \"idBarrioRecogidaExterna\": 1\n}" },
+            "url": "{{baseUrl}}/api/solicitudes"
+          }
+        },
+        {
+          "name": "Consultar Detalle de Solicitud",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Incluye lista de incidentes', () => pm.expect(pm.response.json().incidentes).to.be.an('array'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/solicitudes/{{solicitudCreadaId}}" }
+        },
+        {
+          "name": "Asignar Domiciliario Activo #1 (sp_asignar_domiciliario)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Asignación exitosa', () => pm.expect(pm.response.json().ok).to.eql(true));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoDomiciliario\": 1\n}" },
+            "url": "{{baseUrl}}/api/solicitudes/{{solicitudCreadaId}}/asignar"
+          }
+        },
+        {
+          "name": "Cambiar Estado a 'en curso' (sp_actualizar_estado_solicitud)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Estado actualizado a en curso', () => pm.expect(pm.response.json().ok).to.eql(true));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"en curso\"\n}" },
+            "url": "{{baseUrl}}/api/solicitudes/{{solicitudCreadaId}}/estado"
+          }
+        },
+        {
+          "name": "Cambiar Estado a 'finalizada' (sp_actualizar_estado_solicitud)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Estado actualizado a finalizada', () => pm.expect(pm.response.json().ok).to.eql(true));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"finalizada\"\n}" },
+            "url": "{{baseUrl}}/api/solicitudes/{{solicitudCreadaId}}/estado"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Incidentes y Auditoría (Triggers)",
+      "item": [
+        {
+          "name": "Registrar Incidente Válido (dispara trg_auditar_incidente)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Incidente auditado', () => pm.expect(pm.response.json().ok).to.eql(true));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroSolicitud\": 503,\n  \"tipoIncidente\": \"retraso\",\n  \"descripcion\": \"Tráfico pesado en la Calle 5\"\n}" },
+            "url": "{{baseUrl}}/api/incidentes"
+          }
+        },
+        {
+          "name": "Listar Incidentes",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/incidentes" }
+        },
+        {
+          "name": "Consultar Bitácora AuditoriaSistema",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Registros de auditoría presentes', () => pm.expect(pm.response.json().length).to.be.above(0));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/auditoria" }
+        }
+      ]
+    },
+    {
+      "name": "5. Vistas Analíticas (VIEWS)",
+      "item": [
+        {
+          "name": "Todas las Vistas Analíticas",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('Contiene las 3 vistas', () => {",
+            "  pm.expect(j).to.have.property('activas');",
+            "  pm.expect(j).to.have.property('domiciliarios');",
+            "  pm.expect(j).to.have.property('establecimientos');",
+            "});"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/vistas" }
+        },
+        {
+          "name": "Vista vw_solicitudes_activas_cali",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/vistas/activas" }
+        },
+        {
+          "name": "Vista vw_resumen_domiciliarios",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/vistas/domiciliarios" }
+        },
+        {
+          "name": "Vista vw_resumen_establecimientos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/vistas/establecimientos" }
+        }
+      ]
+    },
+    {
+      "name": "6. Pruebas Negativas de Reglas de Negocio (RN)",
+      "item": [
+        {
+          "name": "[RN-03] Rechazar recogida doble (aliado + externa)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Rechazo por exclusividad de origen', () => pm.expect(pm.response.json().ok).to.eql(false));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroIdentificacionCliente\": \"1001\",\n  \"idDireccion\": 1,\n  \"descripcionRecogida\": \"Prueba doble origen\",\n  \"metodoPago\": \"efectivo\",\n  \"montoTotal\": 20000,\n  \"codigoEstablecimiento\": 101,\n  \"ubicacionRecogidaExterna\": \"Calle 10 # 5-10\",\n  \"idBarrioRecogidaExterna\": 1\n}" },
+            "url": "{{baseUrl}}/api/solicitudes"
+          }
+        },
+        {
+          "name": "[RN-03] Rechazar recogida nula (sin aliado ni externa)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Rechazo por falta de origen', () => pm.expect(pm.response.json().ok).to.eql(false));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroIdentificacionCliente\": \"1001\",\n  \"idDireccion\": 1,\n  \"descripcionRecogida\": \"Prueba sin origen\",\n  \"metodoPago\": \"efectivo\",\n  \"montoTotal\": 20000\n}" },
+            "url": "{{baseUrl}}/api/solicitudes"
+          }
+        },
+        {
+          "name": "[RN-04] Rechazar dirección ajena al cliente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje indica dirección ajena', () => pm.expect(pm.response.json().mensaje).to.include('no pertenece al cliente'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroIdentificacionCliente\": \"1001\",\n  \"idDireccion\": 3,\n  \"descripcionRecogida\": \"Direccion de otro cliente\",\n  \"metodoPago\": \"efectivo\",\n  \"montoTotal\": 25000,\n  \"codigoEstablecimiento\": 101\n}" },
+            "url": "{{baseUrl}}/api/solicitudes"
+          }
+        },
+        {
+          "name": "[RN-05] Rechazar asignación a domiciliario inactivo (#3)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje indica domiciliario inactivo', () => pm.expect(pm.response.json().mensaje).to.include('inactivo'));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoDomiciliario\": 3\n}" },
+            "url": "{{baseUrl}}/api/solicitudes/506/asignar"
+          }
+        },
+        {
+          "name": "[Trigger] Rechazar incidente con fecha anterior a creación",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Trigger bloqueó la fecha inválida', () => pm.expect(pm.response.json().mensaje).to.include('anterior'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numeroSolicitud\": 501,\n  \"tipoIncidente\": \"retraso\",\n  \"fechaHoraIncidente\": \"2020-01-01T08:00:00\",\n  \"descripcion\": \"Fecha anterior imposible\"\n}" },
+            "url": "{{baseUrl}}/api/incidentes"
+          }
+        },
+        {
+          "name": "[RN-06] Rechazar transición inválida (finalizar solicitud creada)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('SP rechazó salto de estado', () => pm.expect(pm.response.json().ok).to.eql(false));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"finalizada\"\n}" },
+            "url": "{{baseUrl}}/api/solicitudes/506/estado"
+          }
+        },
+        {
+          "name": "[404] Solicitud inexistente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/solicitudes/9999" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 -- =============================================================================
 -- PROYECTO INTEGRADOR - BASES DE DATOS 1
 -- Sistema de Gestión de Operaciones de Domicilios (Santiago de Cali)
--- Motor: MySQL 8.0+ (InnoDB / utf8mb4)
+-- Motor: MySQL 8.0+ (InnoDB / utf8mb4_unicode_ci)
+-- Ejecutar completo en MySQL Workbench (Ctrl+Shift+Enter) o CLI mysql
 -- =============================================================================
 
 DROP DATABASE IF EXISTS Sistema_gestion_operaciones_domicilios;
@@ -12,7 +13,7 @@ CREATE DATABASE Sistema_gestion_operaciones_domicilios
 USE Sistema_gestion_operaciones_domicilios;
 
 -- =============================================================================
--- 1. DEFINICIÓN DE ESTRUCTURA (DDL)
+-- 1. DEFINICIÓN DE ESTRUCTURA (DDL - 9 TABLAS NORMALIZADAS 3FN/BCNF)
 -- =============================================================================
 
 CREATE TABLE Usuario (
@@ -106,20 +107,24 @@ CREATE TABLE SolicitudDomicilio (
     ubicacionRecogidaExterna    VARCHAR(200) NULL,
     idBarrioRecogidaExterna     INT NULL,
 
+    -- Restricción de dominio monetario
     CONSTRAINT ck_monto_no_negativo CHECK (montoTotal >= 0),
 
+    -- RN-03: Exclusividad mutua del punto de recogida (establecimiento aliado O dirección externa)
     CONSTRAINT ck_lugar_recogida CHECK (
         (codigoEstablecimiento IS NOT NULL AND ubicacionRecogidaExterna IS NULL AND idBarrioRecogidaExterna IS NULL)
         OR
         (codigoEstablecimiento IS NULL AND ubicacionRecogidaExterna IS NOT NULL AND idBarrioRecogidaExterna IS NOT NULL)
     ),
 
+    -- RN-05: Asignación atómica domiciliario + fechaHoraAsignacion
     CONSTRAINT ck_asignacion CHECK (
         (codigoDomiciliario IS NULL AND fechaHoraAsignacion IS NULL)
         OR
         (codigoDomiciliario IS NOT NULL AND fechaHoraAsignacion IS NOT NULL)
     ),
 
+    -- RN-06: Coherencia del estado con la asignación
     CONSTRAINT ck_estado_domiciliario CHECK (
         (estado = 'creada' AND codigoDomiciliario IS NULL)
         OR
@@ -128,6 +133,7 @@ CREATE TABLE SolicitudDomicilio (
         (estado = 'cancelada')
     ),
 
+    -- RN-04: FK compuesta que garantiza que la dirección pertenezca al cliente solicitante
     CONSTRAINT fk_solicitud_cliente_direccion
         FOREIGN KEY (idDireccion, numeroIdentificacionCliente)
         REFERENCES DireccionEntrega (idDireccion, numeroIdentificacionCliente)
@@ -176,6 +182,7 @@ CREATE TABLE AuditoriaSistema (
     usuarioBD         VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Índices secundarios para optimización de consultas operativas
 CREATE INDEX idx_solicitud_cliente   ON SolicitudDomicilio (numeroIdentificacionCliente);
 CREATE INDEX idx_solicitud_estado    ON SolicitudDomicilio (estado);
 CREATE INDEX idx_solicitud_fecha     ON SolicitudDomicilio (fechaHoraCreacion);
@@ -183,7 +190,55 @@ CREATE INDEX idx_incidente_solicitud ON Incidente (numeroSolicitud);
 CREATE INDEX idx_domiciliario_estado ON Domiciliario (estado);
 
 -- =============================================================================
--- 2. VISTAS ANALÍTICAS (VIEWS)
+-- 2. FUNCIONES ALMACENADAS (DECLARADAS ANTES DE LAS VISTAS)
+-- =============================================================================
+
+DELIMITER //
+
+CREATE FUNCTION fn_calcular_tarifa_entrega(
+    p_comuna VARCHAR(2),
+    p_montoTotal DECIMAL(10,2)
+)
+RETURNS DECIMAL(10,2)
+DETERMINISTIC
+NO SQL
+BEGIN
+    DECLARE v_tarifaBase DECIMAL(10,2);
+
+    IF p_comuna IN ('2', '3', '17', '19') THEN
+        SET v_tarifaBase = 5500.00;
+    ELSEIF p_comuna IN ('10', '11', '18', '22') THEN
+        SET v_tarifaBase = 7500.00;
+    ELSE
+        SET v_tarifaBase = 6500.00;
+    END IF;
+
+    IF p_montoTotal >= 80000.00 THEN
+        SET v_tarifaBase = ROUND(v_tarifaBase * 0.50, 2);
+    END IF;
+
+    RETURN v_tarifaBase;
+END //
+
+CREATE FUNCTION fn_contar_incidentes_solicitud(p_numeroSolicitud INT)
+RETURNS INT
+NOT DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_total INT DEFAULT 0;
+
+    SELECT COUNT(*)
+      INTO v_total
+      FROM Incidente
+     WHERE numeroSolicitud = p_numeroSolicitud;
+
+    RETURN v_total;
+END //
+
+DELIMITER ;
+
+-- =============================================================================
+-- 3. VISTAS ANALÍTICAS (VIEWS)
 -- =============================================================================
 
 CREATE OR REPLACE VIEW vw_solicitudes_activas_cali AS
@@ -194,6 +249,8 @@ SELECT
     s.descripcionRecogida,
     s.metodoPago,
     s.montoTotal,
+    fn_calcular_tarifa_entrega(b_ent.comuna, s.montoTotal) AS tarifaDomicilio,
+    fn_contar_incidentes_solicitud(s.numeroSolicitud) AS totalIncidentes,
     u_cli.numeroIdentificacion AS clienteIdentificacion,
     CONCAT(u_cli.nombres, ' ', u_cli.apellidoPaterno, IFNULL(CONCAT(' ', u_cli.apellidoMaterno), '')) AS clienteNombre,
     u_cli.telefono AS clienteTelefono,
@@ -213,6 +270,7 @@ SELECT
 FROM SolicitudDomicilio s
 INNER JOIN Usuario u_cli          ON s.numeroIdentificacionCliente = u_cli.numeroIdentificacion
 INNER JOIN DireccionEntrega d_ent ON s.idDireccion = d_ent.idDireccion
+                                 AND s.numeroIdentificacionCliente = d_ent.numeroIdentificacionCliente
 INNER JOIN Barrio b_ent           ON d_ent.idBarrio = b_ent.idBarrio
 LEFT JOIN EstablecimientoAliado e ON s.codigoEstablecimiento = e.codigoEstablecimiento
 LEFT JOIN Barrio b_est            ON e.idBarrio = b_est.idBarrio
@@ -267,54 +325,7 @@ GROUP BY
     b.comuna;
 
 -- =============================================================================
--- 3. FUNCIONES ALMACENADAS (FUNCTIONS)
--- =============================================================================
-
-DELIMITER //
-
-CREATE FUNCTION fn_calcular_tarifa_entrega(
-    p_comuna VARCHAR(2),
-    p_montoTotal DECIMAL(10,2)
-)
-RETURNS DECIMAL(10,2)
-DETERMINISTIC
-NO SQL
-BEGIN
-    DECLARE v_tarifaBase DECIMAL(10,2);
-
-    IF p_comuna IN ('2', '3', '17', '19') THEN
-        SET v_tarifaBase = 5500.00;
-    ELSEIF p_comuna IN ('22', '10', '11', '18') THEN
-        SET v_tarifaBase = 7500.00;
-    ELSE
-        SET v_tarifaBase = 6500.00;
-    END IF;
-
-    IF p_montoTotal >= 80000.00 THEN
-        SET v_tarifaBase = ROUND(v_tarifaBase * 0.50, 2);
-    END IF;
-
-    RETURN v_tarifaBase;
-END //
-
-CREATE FUNCTION fn_contar_incidentes_solicitud(p_numeroSolicitud INT)
-RETURNS INT
-READS SQL DATA
-BEGIN
-    DECLARE v_total INT DEFAULT 0;
-
-    SELECT COUNT(*)
-      INTO v_total
-      FROM Incidente
-     WHERE numeroSolicitud = p_numeroSolicitud;
-
-    RETURN v_total;
-END //
-
-DELIMITER ;
-
--- =============================================================================
--- 4. DISPARADORES DE AUDITORÍA Y VALIDACIÓN (TRIGGERS)
+-- 4. DISPARADORES DE VALIDACIÓN Y AUDITORÍA (TRIGGERS)
 -- =============================================================================
 
 DELIMITER //
@@ -333,6 +344,45 @@ BEGIN
     IF NEW.fechaHoraIncidente < v_fechaCreacion THEN
         SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'ERROR: La fecha del incidente no puede ser anterior a la creación de la solicitud.';
+    END IF;
+END //
+
+CREATE TRIGGER trg_validar_domiciliario_activo_ins
+BEFORE INSERT ON SolicitudDomicilio
+FOR EACH ROW
+BEGIN
+    DECLARE v_estadoDom VARCHAR(10);
+
+    IF NEW.codigoDomiciliario IS NOT NULL THEN
+        SELECT estado
+          INTO v_estadoDom
+          FROM Domiciliario
+         WHERE codigoDomiciliario = NEW.codigoDomiciliario;
+
+        IF v_estadoDom <> 'activo' THEN
+            SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'ERROR (RN-05): No se puede asignar una solicitud a un domiciliario inactivo.';
+        END IF;
+    END IF;
+END //
+
+CREATE TRIGGER trg_validar_domiciliario_activo_upd
+BEFORE UPDATE ON SolicitudDomicilio
+FOR EACH ROW
+BEGIN
+    DECLARE v_estadoDom VARCHAR(10);
+
+    IF NEW.codigoDomiciliario IS NOT NULL
+       AND (OLD.codigoDomiciliario IS NULL OR NEW.codigoDomiciliario <> OLD.codigoDomiciliario) THEN
+        SELECT estado
+          INTO v_estadoDom
+          FROM Domiciliario
+         WHERE codigoDomiciliario = NEW.codigoDomiciliario;
+
+        IF v_estadoDom <> 'activo' THEN
+            SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'ERROR (RN-05): No se puede asignar una solicitud a un domiciliario inactivo.';
+        END IF;
     END IF;
 END //
 
@@ -449,7 +499,9 @@ CREATE PROCEDURE sp_registrar_solicitud(
     OUT p_resultado                   VARCHAR(150)
 )
 BEGIN
-    DECLARE v_dirValida INT DEFAULT 0;
+    DECLARE v_dirValida    INT DEFAULT 0;
+    DECLARE v_estValido    INT DEFAULT 0;
+    DECLARE v_barrioValido INT DEFAULT 0;
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -470,7 +522,7 @@ BEGIN
         SET p_numeroSolicitudGenerado = NULL;
         SET p_resultado = 'RECHAZADO: La dirección de entrega no pertenece al cliente indicado.';
         ROLLBACK;
-    ELSEIF p_montoTotal < 0 THEN
+    ELSEIF p_montoTotal IS NULL OR p_montoTotal < 0 THEN
         SET p_numeroSolicitudGenerado = NULL;
         SET p_resultado = 'RECHAZADO: El monto total no puede ser negativo.';
         ROLLBACK;
@@ -483,21 +535,61 @@ BEGIN
         SET p_resultado = 'RECHAZADO: Debe indicar exclusivamente un establecimiento aliado O una dirección externa.';
         ROLLBACK;
     ELSE
-        INSERT INTO SolicitudDomicilio (
-            fechaHoraCreacion, estado, descripcionRecogida, metodoPago, montoTotal,
-            numeroIdentificacionCliente, idDireccion,
-            codigoDomiciliario, fechaHoraAsignacion,
-            codigoEstablecimiento, ubicacionRecogidaExterna, idBarrioRecogidaExterna
-        ) VALUES (
-            NOW(), 'creada', p_descripcionRecogida, p_metodoPago, p_montoTotal,
-            p_numeroIdentificacionCliente, p_idDireccion,
-            NULL, NULL,
-            p_codigoEstablecimiento, p_ubicacionRecogidaExterna, p_idBarrioRecogidaExterna
-        );
+        IF p_codigoEstablecimiento IS NOT NULL THEN
+            SELECT COUNT(*)
+              INTO v_estValido
+              FROM EstablecimientoAliado
+             WHERE codigoEstablecimiento = p_codigoEstablecimiento;
 
-        SET p_numeroSolicitudGenerado = LAST_INSERT_ID();
-        COMMIT;
-        SET p_resultado = CONCAT('EXITOSO: Solicitud #', p_numeroSolicitudGenerado, ' creada correctamente.');
+            IF v_estValido = 0 THEN
+                SET p_numeroSolicitudGenerado = NULL;
+                SET p_resultado = 'RECHAZADO: El establecimiento aliado especificado no existe.';
+                ROLLBACK;
+            ELSE
+                INSERT INTO SolicitudDomicilio (
+                    fechaHoraCreacion, estado, descripcionRecogida, metodoPago, montoTotal,
+                    numeroIdentificacionCliente, idDireccion,
+                    codigoDomiciliario, fechaHoraAsignacion,
+                    codigoEstablecimiento, ubicacionRecogidaExterna, idBarrioRecogidaExterna
+                ) VALUES (
+                    NOW(), 'creada', p_descripcionRecogida, p_metodoPago, p_montoTotal,
+                    p_numeroIdentificacionCliente, p_idDireccion,
+                    NULL, NULL,
+                    p_codigoEstablecimiento, NULL, NULL
+                );
+
+                SET p_numeroSolicitudGenerado = LAST_INSERT_ID();
+                COMMIT;
+                SET p_resultado = CONCAT('EXITOSO: Solicitud #', p_numeroSolicitudGenerado, ' creada correctamente.');
+            END IF;
+        ELSE
+            SELECT COUNT(*)
+              INTO v_barrioValido
+              FROM Barrio
+             WHERE idBarrio = p_idBarrioRecogidaExterna;
+
+            IF v_barrioValido = 0 THEN
+                SET p_numeroSolicitudGenerado = NULL;
+                SET p_resultado = 'RECHAZADO: El barrio de recogida externa especificado no existe.';
+                ROLLBACK;
+            ELSE
+                INSERT INTO SolicitudDomicilio (
+                    fechaHoraCreacion, estado, descripcionRecogida, metodoPago, montoTotal,
+                    numeroIdentificacionCliente, idDireccion,
+                    codigoDomiciliario, fechaHoraAsignacion,
+                    codigoEstablecimiento, ubicacionRecogidaExterna, idBarrioRecogidaExterna
+                ) VALUES (
+                    NOW(), 'creada', p_descripcionRecogida, p_metodoPago, p_montoTotal,
+                    p_numeroIdentificacionCliente, p_idDireccion,
+                    NULL, NULL,
+                    NULL, p_ubicacionRecogidaExterna, p_idBarrioRecogidaExterna
+                );
+
+                SET p_numeroSolicitudGenerado = LAST_INSERT_ID();
+                COMMIT;
+                SET p_resultado = CONCAT('EXITOSO: Solicitud #', p_numeroSolicitudGenerado, ' creada correctamente.');
+            END IF;
+        END IF;
     END IF;
 END //
 
@@ -578,11 +670,16 @@ VALUES
 
 INSERT INTO Barrio (idBarrio, nombreBarrio, comuna)
 VALUES
-(1, 'San Fernando',  '19'),
-(2, 'El Ingenio',    '17'),
-(3, 'Granada',       '2'),
-(4, 'San Antonio',   '3'),
-(5, 'Ciudad Jardin', '22');
+(1,  'San Fernando',  '19'),
+(2,  'El Ingenio',    '17'),
+(3,  'Granada',       '2'),
+(4,  'San Antonio',   '3'),
+(5,  'Ciudad Jardin', '22'),
+(6,  'Pance',         '22'),
+(7,  'El Peñón',      '3'),
+(8,  'Versalles',     '2'),
+(9,  'Tequendama',    '19'),
+(10, 'Limonar',       '17');
 
 INSERT INTO DireccionEntrega
 (idDireccion, ubicacion, idBarrio, referenciaAdicional, numeroIdentificacionCliente)
@@ -596,29 +693,29 @@ VALUES
 INSERT INTO EstablecimientoAliado
 (codigoEstablecimiento, nombreComercial, tipoEstablecimiento, ubicacion, idBarrio, telefono, correoElectronico)
 VALUES
-(101, 'Restaurante El Buen Sabor',  'restaurante',          'Calle 9 # 25-30',    1, '6025550101', 'buensabor@example.com'),
-(102, 'Farmacia Salud',             'farmacia',             'Carrera 80 # 12-40', 2, '6025550102', NULL),
-(103, 'Supermercado Central',       'supermercado',         'Avenida 6N # 20-15', 3, '6025550103', 'central@example.com'),
-(104, 'Tienda Especializada Norte', 'tienda especializada', 'Calle 4 # 8-20',     4, '6025550104', NULL),
-(105, 'Restaurante La Esquina',     'restaurante',          'Carrera 100 # 16-10',5, '6025550105', 'esquina@example.com');
+(101, 'Restaurante El Buen Sabor',  'restaurante',          'Calle 9 # 25-30',     1, '6025550101', 'buensabor@example.com'),
+(102, 'Farmacia Salud',             'farmacia',             'Carrera 80 # 12-40',  2, '6025550102', NULL),
+(103, 'Supermercado Central',       'supermercado',         'Avenida 6N # 20-15',  3, '6025550103', 'central@example.com'),
+(104, 'Tienda Especializada Norte', 'tienda especializada', 'Calle 4 # 8-20',      4, '6025550104', NULL),
+(105, 'Restaurante La Esquina',     'restaurante',          'Carrera 100 # 16-10', 5, '6025550105', 'esquina@example.com');
 
 INSERT INTO SolicitudDomicilio
 (numeroSolicitud, fechaHoraCreacion, estado, descripcionRecogida, metodoPago, montoTotal,
  numeroIdentificacionCliente, idDireccion, codigoDomiciliario, fechaHoraAsignacion,
  codigoEstablecimiento, ubicacionRecogidaExterna, idBarrioRecogidaExterna)
 VALUES
-(501, '2026-10-17 09:00:00', 'creada',     'Pedido de alimentos',            'efectivo',    45000.00, '1001', 1, NULL, NULL,                  101,  NULL,                 NULL),
-(502, '2026-10-17 09:30:00', 'asignada',   'Recoger medicamentos',           'electrónico', 32000.00, '1002', 3, 1,    '2026-10-17 09:35:00', 102,  NULL,                 NULL),
-(503, '2026-10-17 10:00:00', 'en curso',   'Recoger compra de supermercado', 'electrónico', 85000.00, '1003', 5, 2,    '2026-10-17 10:05:00', NULL, 'Calle 15 # 30-40',   1),
-(504, '2026-10-17 10:30:00', 'cancelada',  'Recoger producto especializado', 'ninguno',         0.00, '1001', 2, NULL, NULL,                  NULL, 'Carrera 50 # 12-15', 2),
-(505, '2026-10-17 11:00:00', 'finalizada', 'Entrega de alimentos preparados','efectivo',    27000.00, '1002', 4, 1,    '2026-10-17 11:05:00', 105,  NULL,                 NULL),
-(506, '2026-10-17 11:30:00', 'creada',     'Compra mercado semanal',         'electrónico', 92000.00, '1003', 5, NULL, NULL,                  103,  NULL,                 NULL);
+(501, '2026-10-17 09:00:00', 'creada',     'Pedido de alimentos',             'efectivo',    45000.00, '1001', 1, NULL, NULL,                  101,  NULL,                 NULL),
+(502, '2026-10-17 09:30:00', 'asignada',   'Recoger medicamentos',            'electrónico', 32000.00, '1002', 3, 1,    '2026-10-17 09:35:00', 102,  NULL,                 NULL),
+(503, '2026-10-17 10:00:00', 'en curso',   'Recoger compra de supermercado',  'electrónico', 85000.00, '1003', 5, 2,    '2026-10-17 10:05:00', NULL, 'Calle 15 # 30-40',   1),
+(504, '2026-10-17 10:30:00', 'cancelada',  'Recoger producto especializado',  'ninguno',         0.00, '1001', 2, NULL, NULL,                  NULL, 'Carrera 50 # 12-15', 2),
+(505, '2026-10-17 11:00:00', 'finalizada', 'Entrega de alimentos preparados', 'efectivo',    27000.00, '1002', 4, 1,    '2026-10-17 11:05:00', 105,  NULL,                 NULL),
+(506, '2026-10-17 11:30:00', 'creada',     'Compra mercado semanal',          'electrónico', 92000.00, '1003', 5, NULL, NULL,                  103,  NULL,                 NULL);
 
 INSERT INTO Incidente
 (codigoIncidente, tipoIncidente, descripcion, fechaHoraIncidente, numeroSolicitud)
 VALUES
-(1, 'retraso',                    'El pedido se retraso por trafico.',           '2026-10-17 10:15:00', 503),
-(2, 'dirección incorrecta',       'Se tuvo que confirmar la ubicacion.',         '2026-10-17 10:20:00', 503),
-(3, 'cliente no responde',        'No se obtuvo respuesta al contactar cliente.','2026-10-17 11:10:00', 505),
-(4, 'establecimiento no entrega', 'El pedido no estaba listo.',                  '2026-10-17 09:40:00', 502),
-(5, 'retraso',                    'La entrega tardo mas de lo esperado.',        '2026-10-17 11:20:00', 505);
+(1, 'retraso',                    'El pedido se retraso por trafico.',            '2026-10-17 10:15:00', 503),
+(2, 'dirección incorrecta',       'Se tuvo que confirmar la ubicacion.',          '2026-10-17 10:20:00', 503),
+(3, 'cliente no responde',        'No se obtuvo respuesta al contactar cliente.', '2026-10-17 11:10:00', 505),
+(4, 'establecimiento no entrega', 'El pedido no estaba listo.',                   '2026-10-17 09:40:00', 502),
+(5, 'retraso',                    'La entrega tardo mas de lo esperado.',         '2026-10-17 11:20:00', 505);

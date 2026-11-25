@@ -10,6 +10,6 @@
       "onAutoForward": "openBrowser"
     }
   },
-  "postCreateCommand": "mvn -q dependency:go-offline",
-  "postStartCommand": "nohup mvn spring-boot:run > /tmp/spring.log 2>&1 &"
+  "postCreateCommand": "chmod +x mvnw && ./mvnw -q dependency:go-offline",
+  "postStartCommand": "chmod +x mvnw && nohup ./mvnw spring-boot:run > /tmp/spring.log 2>&1 &"
 }
