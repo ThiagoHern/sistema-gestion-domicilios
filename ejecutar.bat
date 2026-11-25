@@ -74,8 +74,8 @@ echo.
 
 start "" /b powershell -NoProfile -Command "for ($i=0; $i -lt 30; $i++) { Start-Sleep -Seconds 1; try { $r = Invoke-WebRequest -Uri 'http://localhost:8080/' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { Start-Process 'http://localhost:8080'; break } } catch {} }"
 
-if exist "app\sistema-domicilios-1.0.0.jar" (
-    java -jar "app\sistema-domicilios-1.0.0.jar" --server.port=8080 --spring.datasource.url="jdbc:mysql://%DB_HOST%:%DB_PORT%/%DB_NAME%?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true&useSSL=false" --spring.datasource.username="!DB_USER!" --spring.datasource.password="!DB_PASS!"
+if exist "sistema-domicilios-1.0.0.jar" (
+    java -jar "sistema-domicilios-1.0.0.jar" --server.port=8080 --spring.datasource.url="jdbc:mysql://%DB_HOST%:%DB_PORT%/%DB_NAME%?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true&useSSL=false" --spring.datasource.username="!DB_USER!" --spring.datasource.password="!DB_PASS!"
 ) else (
     call .\mvnw.cmd spring-boot:run
 )
